@@ -1,30 +1,27 @@
+import os
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 
-# Number of 1 GB files to create, including the original
 NUM_FILES = 10
-
-# File size: 1 GiB
-CHUNK_SIZE = 1024 * 1024  # 1 MiB
-NUM_CHUNKS = 1024
+FILE_SIZE = 1024**3  # 1 GiB
 
 SOURCE_FILE = "original_1GB.txt"
 
-print("Creating the original 1 GB text file...")
+print("Creating files...")
 
-# Create the original file filled with zeros
-chunk = "0" * CHUNK_SIZE
+# Create a sparse file (may not allocate physical disk space for zeros)
+with open(SOURCE_FILE, "wb") as f:
+    f.truncate(FILE_SIZE)
 
-with open(SOURCE_FILE, "w", encoding="ascii") as f:
-    for _ in range(NUM_CHUNKS):
-        f.write(chunk)
-
-print("Original file created!")
-
-# Copy the original file as many times as requested
-for i in range(1, NUM_FILES):
+def create_copy(i):
     filename = f"copy_{i}.txt"
     shutil.copyfile(SOURCE_FILE, filename)
-    print(f"Created {filename}")
+    return filename
 
-print(f"\nFinished! Created {NUM_FILES} files.")
-print(f"Total disk space required: approximately {NUM_FILES} GiB.")
+# Copy files concurrently
+with ThreadPoolExecutor(max_workers=4) as executor:
+    for filename in executor.map(create_copy, range(1, NUM_FILES)):
+        print(f"Created {filename}")
+
+print(f"\nFinished creating {NUM_FILES} files.")
+print(f"Logical total size: {NUM_FILES} GiB")
