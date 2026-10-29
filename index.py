@@ -1,27 +1,52 @@
 import os
 import shutil
+import secrets
+import string
 from concurrent.futures import ThreadPoolExecutor
 
+# Configuration
 NUM_FILES = 10
 FILE_SIZE = 1024**3  # 1 GiB
+CHUNK_SIZE = 4 * 1024 * 1024  # 4 MiB
+NUM_WORKERS = 4
 
-SOURCE_FILE = "original_1GB.txt"
 
-print("Creating files...")
+def random_name(length=20):
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
-# Create a sparse file (may not allocate physical disk space for zeros)
-with open(SOURCE_FILE, "wb") as f:
-    f.truncate(FILE_SIZE)
 
-def create_copy(i):
-    filename = f"copy_{i}.txt"
-    shutil.copyfile(SOURCE_FILE, filename)
+# Create a folder with a completely random name
+folder = random_name(20)
+os.makedirs(folder)
+
+
+# Generate random filenames
+filenames = [random_name(24) + ".txt" for _ in range(NUM_FILES)]
+
+# Create the original file
+source_path = os.path.join(folder, filenames[0])
+
+
+chunk = b"0" * CHUNK_SIZE
+
+with open(source_path, "wb") as f:
+    remaining = FILE_SIZE
+
+    while remaining > 0:
+        size = min(CHUNK_SIZE, remaining)
+        f.write(chunk[:size])
+        remaining -= size
+
+
+# Copy the original file using multiple threads
+def create_copy(filename):
+    destination = os.path.join(folder, filename)
+    shutil.copyfile(source_path, destination)
     return filename
 
-# Copy files concurrently
-with ThreadPoolExecutor(max_workers=4) as executor:
-    for filename in executor.map(create_copy, range(1, NUM_FILES)):
-        print(f"Created {filename}")
 
-print(f"\nFinished creating {NUM_FILES} files.")
-print(f"Logical total size: {NUM_FILES} GiB")
+with ThreadPoolExecutor(max_workers=NUM_WORKERS) as executor:
+    for filename in executor.map(create_copy, filenames[1:]):
+        print("")
+
