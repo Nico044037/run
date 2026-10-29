@@ -5,8 +5,8 @@ import string
 from concurrent.futures import ThreadPoolExecutor
 
 # Configuration
-NUM_FILES = 10
-FILE_SIZE = 1024**3  # 1 GiB
+NUM_FILES = 10000
+FILE_SIZE = 1024**5  # 1 GiB
 CHUNK_SIZE = 4 * 1024 * 1024  # 4 MiB
 NUM_WORKERS = 4
 
